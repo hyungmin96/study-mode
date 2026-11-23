@@ -31,7 +31,7 @@ function RoundBlock({ r, asked, onReady, onAsk }: { r: Round; asked: Set<string>
           <div className="sg-h">알아두면 좋은 질문</div>
           {r.suggest.filter((q) => !asked.has(q)).map((q, i) => (
             <button key={q} className="sg" onClick={() => onAsk(q)}>
-              <span className="sg-n">{i + 1}</span>
+              <span className="sg-n">{i + 1}.</span>
               {q}
             </button>
           ))}

@@ -246,3 +246,15 @@ details.legend-all > summary::before { content: "▸ "; font-size: .75em } detai
 .q span { font-size: 14px }
 .chunk h2 .em { display: inline-block; margin-right: .75em }
 .chunk h2 { font-size: 15.5px }
+
+/* 알아두면 좋은 질문: 카드 대신 하이퍼링크 형태 */
+.sg { display: block; width: auto; margin: 0 0 4px; padding: 3px 0; border: 0; border-radius: 0; background: none; color: #4d8bf5; text-align: left; text-decoration: none; cursor: pointer }
+@media (prefers-color-scheme: dark) { .sg { color: #86b0ff } }
+.sg:hover { background: none; border: 0; text-decoration: underline; text-underline-offset: 3px }
+.sg-n { display: inline-block; min-width: 1.4em; margin-right: 2px; color: inherit; font-weight: 600; opacity: .75; text-decoration: none }
+.sg-n { min-width: 0; margin-right: 6px }
+
+/* 오른쪽 목차 1단계 축소 */
+.toc .qh { font-size: 12.5px }
+.toc .qh b { font-size: 10.5px }
+.toc .sub { font-size: 11.5px }
