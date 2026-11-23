@@ -30,16 +30,14 @@ body { background: var(--bg); color: var(--fg); font: 14px/1.6 -apple-system, "A
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .start { flex: 1; display: flex; flex-direction: column; width: 100%; padding: 0 24px 16px; box-sizing: border-box; text-align: center; }
 .start h1 { font-weight: 600; margin: auto 0; }
-.start textarea, .composer textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--bg); border-radius: 10px; box-sizing: border-box; background: var(--line); color: var(--fg); font: inherit; resize: none; outline: none; }
-.start textarea:focus, .composer textarea:focus { border-color: var(--accent); }
 .placeholder { padding: 48px; }
 
 /* ---- 본문 (template.html 에서 이식) ---- */
 :root { --card:#fff; --ink:var(--fg); --sub:var(--mute); --acc:var(--accent); --accbg:#e9f0fe; --hook:#fff6e0; --hookb:#f0cf7a; --vhd:#2d3b5e; --vlab:#e8ecf4; --vz:#f5f7fb; --vln:#b6bfd3 }
 @media (prefers-color-scheme: dark) { :root { --card:#2a2a2c; --accbg:#1f2a40; --hook:#2e2814; --hookb:#6d5a1f; --vhd:#33477a; --vlab:#26303f; --vz:#1d2330; --vln:#3b455a } }
 .topic { flex: 1; min-height: 0; display: flex; }
-.scroller { position: relative; flex: 1; min-width: 0; overflow-y: auto; padding-top: 38px; }
-.doc { max-width: 860px; margin: 0 auto; padding: 8px 24px 90px; font-size: 13px; line-height: 1.65; }
+.scroller { position: relative; flex: 1; min-width: 0; overflow-y: auto; }
+.doc { max-width: 860px; margin: 0 auto; padding: 0 24px 90px; font-size: 13px; line-height: 1.65; }
 .doc h1 { margin: 0 0 6px; font-size: 1.7em; }
 .round { margin-top: 56px; scroll-margin-top: 16px } .round:first-of-type { margin-top: 28px }
 .q { font-size: 1.5em; line-height: 1.4; margin: 0 0 18px; padding: 14px 18px; background: var(--accbg); border-left: 6px solid var(--acc); border-radius: 10px; display: flex; gap: 12px; align-items: baseline }
@@ -89,8 +87,7 @@ details.legend-all > summary::before { content: "▸ "; font-size: .75em } detai
 .toc .sub.on { color: var(--acc); font-weight: 600; box-shadow: inset 2px 0 0 var(--acc) }
 
 /* ---- 입력·진행 (3단계) ---- */
-.composer { padding: 10px 24px 16px; border-top: 1px solid var(--line); background: var(--bg) }
-.composer textarea { display: block }
+.composer { padding: 8px 24px 18px; background: var(--bg) }
 .err { margin-top: 8px; color: #d33; font-size: 13px }
 .job { margin: 0 0 14px; padding: 12px 16px; border: 1px dashed var(--line); border-radius: 12px }
 .job.bad { border-color: #d33 }
@@ -116,3 +113,82 @@ details.legend-all > summary::before { content: "▸ "; font-size: .75em } detai
 .chk { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 1.5px solid var(--mute); border-radius: 4px; box-sizing: border-box; }
 .chk.on { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.5l2.6 2.6L11 4.8' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; border-color: var(--accent); }
 .pickbar .danger:disabled { opacity: .4; cursor: default; }
+
+/* 진행 애니메이션 */
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes slide { 0% { left: -40% } 100% { left: 100% } }
+@keyframes blink { 0%, 20% { opacity: .2 } 50% { opacity: 1 } 100% { opacity: .2 } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent) } 50% { box-shadow: 0 0 0 6px transparent } }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+.spinner.sm { width: 10px; height: 10px; border-width: 1.5px; margin-right: 6px; vertical-align: -1px }
+.mk { display: inline-block; width: 14px; margin-right: 6px; text-align: center; font-weight: 700 }
+.mk.ok { color: #2e9e5b } .mk.fail { color: #d33 } .mk.wait::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line) }
+.dots::after { content: "..."; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; animation: blink 1.2s infinite }
+.job.active { animation: pulse 2s ease-in-out infinite; border-style: solid; border-color: color-mix(in srgb, var(--accent) 45%, var(--line)) }
+.job.done { border-style: solid; border-color: #2e9e5b66 }
+.jhead { display: flex; align-items: center; gap: 8px }
+.jhead .jq { flex: 1; min-width: 0 }
+.jopen, .jclose { border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 6px; padding: 2px 10px; cursor: pointer; font-size: 12px }
+.jclose { padding: 2px 7px }
+.stwrap { display: inline-flex; align-items: center; gap: 8px }
+.link { width: 28px; height: 2px; background: var(--line); border-radius: 1px } .link.on { background: #2e9e5b }
+.st.run { color: var(--fg); font-weight: 600 }
+.jbar { position: relative; height: 3px; margin-top: 10px; overflow: hidden; border-radius: 2px; background: color-mix(in srgb, var(--accent) 15%, transparent) }
+.jbar i { position: absolute; top: 0; bottom: 0; width: 40%; border-radius: 2px; background: var(--accent); animation: slide 1.3s ease-in-out infinite }
+/* 시작 화면 */
+.start-top { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding-top: 38px }
+.start-top h1 { margin: auto 0 }
+.startjobs { width: 100%; max-width: 640px; margin: 0 auto 16px; text-align: left }
+.startjobs .job { margin: 0 0 10px }
+/* 우측 탭 */
+.tabs { display: flex; gap: 4px; margin: 0 0 10px; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--fg) 8%, transparent) }
+.tabs button { flex: 1; padding: 5px 6px; border: 0; border-radius: 6px; background: none; color: var(--mute); cursor: pointer; font: inherit; font-size: 12px; font-weight: 600 }
+.tabs button.on { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px #0002 }
+.tabs em { margin-left: 4px; padding: 0 6px; border-radius: 8px; background: var(--accent); color: #fff; font-style: normal; font-size: 11px }
+.toc .empty { padding: 8px; color: var(--mute); font-size: 12px }
+.toc .sub.top { margin-left: 0 }
+
+.job.clickable { cursor: pointer; transition: background .15s }
+.job.clickable:hover { background: color-mix(in srgb, var(--accent) 8%, transparent) }
+.jopen { border: 0; background: none; color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap }
+.titlebar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 8px; margin: 0 -24px 6px; padding: 12px 24px 8px; background: var(--bg); border-bottom: 1px solid var(--line) }
+.titlebar h1 { margin: 0 }
+.back { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--fg); cursor: pointer; display: flex; align-items: center; justify-content: center }
+.back:hover { background: color-mix(in srgb, var(--fg) 16%, transparent) }
+.back svg { width: 18px; height: 18px }
+
+/* 제미나이 스타일 입력란 */
+:root { --box: #f0f2f6 }
+@media (prefers-color-scheme: dark) { :root { --box: #2c2c2f } }
+.chatbox { width: 100%; max-width: 800px; margin: 0 auto; padding: 8px 8px 8px 22px; border-radius: 28px; background: var(--box); display: flex; align-items: flex-end; gap: 8px; cursor: text; text-align: left; transition: box-shadow .15s }
+.chatbox:focus-within { box-shadow: 0 1px 6px #0003 }
+.chatbox textarea { flex: 1; min-width: 0; min-height: 36px; margin: 0; max-height: 200px; padding: 6px 0; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 15px; line-height: 1.6; resize: none; outline: none; overflow-y: auto; display: block }
+.chatbox textarea::placeholder { color: var(--mute) }
+.send { flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--fg); color: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity .15s }
+.send:disabled { background: color-mix(in srgb, var(--fg) 14%, transparent); color: var(--mute); cursor: default }
+.send svg { width: 20px; height: 20px }
+
+.chunk, .round { scroll-margin-top: 64px }
+
+/* 사이드바 접기 · 글꼴 · 색 */
+.sidebar { font-size: 12px }
+.sidebar.hidden { display: none }
+.sidebar .item { color: color-mix(in srgb, var(--fg) 72%, var(--side)) }
+.sidebar .item.active, .sidebar .item.picked { color: var(--fg) }
+.sidebar .folder { color: color-mix(in srgb, var(--fg) 86%, var(--side)) }
+.sidebar .item .cnt { font-size: 11px }
+.sidebar .new { font-size: 12px }
+.pickbar { font-size: 11px }
+.sidetoggle { position: fixed; top: 6px; left: 86px; z-index: 6; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--mute); cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-app-region: no-drag }
+.sidetoggle:hover { background: color-mix(in srgb, var(--fg) 10%, transparent); color: var(--fg) }
+.sidetoggle svg { width: 18px; height: 18px }
+.back, .titlebar button { -webkit-app-region: no-drag }
+.app.collapsed .titlebar { padding-left: 124px }
+.bicon, .ficon { filter: saturate(.85) brightness(.92) }
+
+/* 우측 메뉴: 한 단계 작게 · 톤다운 */
+.toc .qh { font-size: 12.5px; color: color-mix(in srgb, var(--fg) 78%, var(--side)) }
+.toc .qh b { font-size: 10.5px; background: color-mix(in srgb, var(--acc) 62%, var(--side)); color: color-mix(in srgb, #fff 88%, var(--side)) }
+.toc .rq.on > .qh { color: color-mix(in srgb, var(--acc) 72%, var(--mute)) }
+.toc .sub { font-size: 11.5px; color: color-mix(in srgb, var(--mute) 88%, var(--side)) }
+.toc .sub.on { color: color-mix(in srgb, var(--acc) 70%, var(--mute)); box-shadow: inset 2px 0 0 color-mix(in srgb, var(--acc) 60%, var(--side)) }

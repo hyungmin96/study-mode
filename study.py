@@ -16,6 +16,7 @@ HTML = ROOT / "html"
 INDEX = DATA / "index.json"
 SELF = str(Path(__file__).resolve())
 NO_OPEN = False   # --no-open: 완료 후 브라우저로 열지 않음 (앱용)
+NEW_TOPIC = False  # --new: 첫 단어가 기존 key 와 같아도 새 주제로 만든다 (앱의 새 채팅)
 NO_HTML = False   # --no-html: 통합 HTML(html/) 생성 생략 (앱용)
 
 CODEX_MODEL = "gpt-6-luna"            # 2026-11-23 수집·요약·정리 모두 codex 단일 모델(luna)로 통일
@@ -110,7 +111,7 @@ class _IndexLock:
             pass
 
 
-def save_index(idx):
+def save_index(idx, keys=None):
     """주제 맵을 저장한다. 잠금 안에서 파일을 다시 읽어 앱이 바꾼 folders·topic.folder 는 보존하고,
     파일에만 있는 주제도 유지한다(오래된 스냅샷이 앱의 변경을 덮어쓰지 않게)."""
     with _IndexLock():
@@ -118,9 +119,12 @@ def save_index(idx):
         if "folders" in raw and isinstance(raw.get("topics"), dict):
             cur = raw["topics"]
             merged = {**cur}
-            for k, m in idx.items():
+            for k in (keys if keys is not None else idx):   # keys: 이번에 바꾼 주제만 쓴다 (병렬 실행이 서로의 변경을 덮지 않게)
+                m = idx[k]
                 merged[k] = {**m, "folder": cur[k].get("folder")} if k in cur and "folder" in cur[k] else m
             idx = {"folders": raw["folders"], "topics": merged}
+        elif keys is not None and raw:
+            idx = {**raw, **{k: idx[k] for k in keys}}
         tmp = INDEX.with_suffix(".tmp")
         tmp.write_text(json.dumps(idx, ensure_ascii=False, indent=2))
         tmp.replace(INDEX)
@@ -145,11 +149,11 @@ def clean(text):
     return text.strip()
 
 
-def run_cmd(cmd, timeout, stdin=None):
+def run_cmd(cmd, timeout, stdin=None, cwd=None):
     try:
         # 입력이 없으면 빈 입력(DEVNULL)을 준다. 터미널 없이 실행하면 codex 등이 stdin을 기다리며 멈춘다
         kw = {"input": stdin} if stdin is not None else {"stdin": subprocess.DEVNULL}
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(ROOT), **kw)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(cwd or ROOT), **kw)
         return p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired:
         return 124, "", f"timeout {timeout}s"
@@ -196,8 +200,11 @@ def codex_json(system, prompt, timeout=None):
     tmp = Path(os.environ.get("TMPDIR", "/tmp")) / tmp
     t0 = time.time()
     cmd = ["codex", "exec", "-m", CODEX_MODEL, "-s", "read-only", "--skip-git-repo-check", "--ephemeral",
-           "-c", "model_reasoning_effort=high", "-o", str(tmp), "-"]
-    rc, so, se = run_cmd(cmd, timeout or CLAUDE_TIMEOUT, stdin=f"{system}\n\n{prompt}")
+           "-c", "model_reasoning_effort=high", "-c", "project_doc_max_bytes=0", "-o", str(tmp), "-"]
+    # 단순 검색 호출: 프로젝트 파일이 없는 빈 폴더에서 실행해 질문 외 자료를 읽지 않게 한다
+    empty = Path(os.environ.get("TMPDIR", "/tmp")) / "study-codex-empty"
+    empty.mkdir(parents=True, exist_ok=True)
+    rc, so, se = run_cmd(cmd, timeout or CLAUDE_TIMEOUT, stdin=f"{system}\n\n{prompt}", cwd=empty)
     try:
         text = tmp.read_text() if tmp.exists() else ""
     finally:
@@ -415,7 +422,7 @@ def prepare(text):
     idx = load_index()
     parts = text.strip().split(None, 1)
     key = parts[0] if parts else ""
-    if key in idx:
+    if key in idx and not NEW_TOPIC:
         if len(parts) < 2:
             sys.exit(f"질문이 없습니다. 사용법: /study-mode {key} <질문>")
         question, new = parts[1], False
@@ -433,7 +440,7 @@ def prepare(text):
     (rd / "prompt.txt").write_text(collect_prompt(question, ctx))
     (rd / "question.txt").write_text(question)
     (rd / "new.flag").write_text("1" if new else "0")
-    save_index(idx)
+    save_index(idx, [key])
     return key, rd, new
 
 
@@ -680,7 +687,7 @@ JSON은 한 줄이고 반드시 유효해야 한다. 사용할 수 있는 태그
         if new:
             meta["topic"] = title
         meta["sections"] += new_titles
-        save_index({**idx, key: meta})
+        save_index({**idx, key: meta}, [key])
         return ometa, vok, vbad, dst
     HTML.mkdir(parents=True, exist_ok=True)
     if new or not meta["html"]:
@@ -696,7 +703,7 @@ JSON은 한 줄이고 반드시 유효해야 한다. 사용할 수 있는 태그
     page = page.replace("<!--ROUNDS-->", block + "<!--ROUNDS-->")
     path.write_text(page)
     meta["sections"] += new_titles
-    save_index({**idx, key: meta})
+    save_index({**idx, key: meta}, [key])
     if dst["ok"] and "mermaid.min.js" not in page:
         rebuild(key)   # 다이어그램 지원 이전 템플릿으로 만든 페이지 → 현재 템플릿으로 다시 만든다
     return ometa, vok, vbad, dst
@@ -776,7 +783,7 @@ def merge_target(text):
     이런 요청은 새 질문(라운드)이 아니라 직전 답변 아래에 덧붙인다."""
     idx = load_index()
     parts = text.strip().split(None, 1)
-    if len(parts) < 2 or parts[0] not in idx or not WANT_MERGE.search(parts[1]):
+    if NEW_TOPIC or len(parts) < 2 or parts[0] not in idx or not WANT_MERGE.search(parts[1]):
         return None
     meta = idx[parts[0]]
     rd = DATA / parts[0] / "rounds" / f"{meta['rounds']:02d}"
@@ -840,7 +847,7 @@ rows 각 행 길이는 cols 길이 + 1, JSON은 한 줄이고 유효해야 한�
             f.write(question + "\n")
         idx = load_index()
         idx[key]["sections"] += titles
-        save_index(idx)
+        save_index(idx, [key])
         (rd / "metrics.json").write_text(json.dumps({"merge": True, "model": om, "visuals_ok": vok, "visuals_bad": vbad,
                                                     "diagrams_ok": dst["ok"], "diagrams_bad": dst["bad"]}, ensure_ascii=False))
         (rd / "finish.done").write_text("ok")
@@ -937,10 +944,10 @@ def main():
         sys.exit(__doc__)
     cmd = a[0]
     if cmd == "run":
-        global NO_OPEN, NO_HTML
-        NO_OPEN, NO_HTML = "--no-open" in a, "--no-html" in a
+        global NO_OPEN, NO_HTML, NEW_TOPIC
+        NO_OPEN, NO_HTML, NEW_TOPIC = "--no-open" in a, "--no-html" in a, "--new" in a
         keep, panes = "--keep" in a, "--panes" in a
-        rest = [x for x in a[1:] if x not in ("--keep", "--panes", "--no-open", "--no-html")]
+        rest = [x for x in a[1:] if x not in ("--keep", "--panes", "--no-open", "--no-html", "--new")]
         opt = {"--reuse": None}
         for name in list(opt):
             if name in rest:

@@ -28,7 +28,7 @@ function RoundBlock({ r, onReady }: { r: Round; onReady: () => void }): React.JS
   )
 }
 
-export function TopicView({ title, rounds, children }: { title: string; rounds: Round[]; children?: React.ReactNode }): React.JSX.Element {
+export function TopicView({ title, rounds, onBack, children }: { title: string; rounds: Round[]; onBack: () => void; children?: React.ReactNode }): React.JSX.Element {
   const scroller = useRef<HTMLDivElement>(null)
   const [toc, setToc] = useState<TocRound[]>([])
   const [active, setActive] = useState<string>('')
@@ -76,7 +76,12 @@ export function TopicView({ title, rounds, children }: { title: string; rounds: 
     <div className="topic">
       <div className="scroller" ref={scroller}>
         <div className="doc">
-          <h1>{title}</h1>
+          <div className="titlebar">
+            <button className="back" title="처음 화면으로" aria-label="뒤로가기" onClick={onBack}>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4 6.5 10l6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+            <h1>{title}</h1>
+          </div>
           {rounds.map((r) => (
             <RoundBlock key={r.n} r={r} onReady={buildToc} />
           ))}

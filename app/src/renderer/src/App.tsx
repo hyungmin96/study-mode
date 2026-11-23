@@ -11,6 +11,23 @@ export function App(): React.JSX.Element {
   const [rounds, setRounds] = useState<Round[]>([])
   const [jobs, setJobs] = useState<Record<string, JobInfo>>({})
   const [err, setErr] = useState('')
+  const [side, setSide] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('side') !== '0'
+    } catch {
+      return true
+    }
+  })
+  const toggleSide = (): void =>
+    setSide((v) => {
+      try {
+        localStorage.setItem('side', v ? '0' : '1')
+      } catch {
+        /* 저장 실패는 무시 */
+      }
+      return !v
+    })
+  const [startJobs, setStartJobs] = useState<string[]>([]) // 시작 화면에서 던진 질문들 (각각 독립된 새 주제)
 
   const refresh = useCallback(() => window.study.listIndex().then(setData), [])
   const loadRounds = useCallback((k: string) => window.study.getTopic(k).then(setRounds), [])
@@ -31,7 +48,7 @@ export function App(): React.JSX.Element {
 
   // 삭제된 주제가 열려 있으면 시작 화면으로
   useEffect(() => {
-    if (sel && Object.keys(data.topics).length && !data.topics[sel] && !pendingNew) setSel(null)
+    if (sel && Object.keys(data.topics).length && !data.topics[sel]) setSel(null)
   }, [data, sel])
 
   // 작업이 새로 끝나면 열려 있는 주제를 다시 읽는다
@@ -45,21 +62,17 @@ export function App(): React.JSX.Element {
     setErr('')
     try {
       const id = await window.study.ask({ key, question })
-      if (!key) setPendingNew(id)
+      if (!key) setStartJobs((p) => [...p, id])
     } catch (e) {
       setErr(String(e))
     }
   }
 
-  // 새 주제 질문 직후: key 가 정해지면 그 주제를 연다
-  const [pendingNew, setPendingNew] = useState<string | null>(null)
-  useEffect(() => {
-    const j = pendingNew ? jobs[pendingNew] : null
-    if (j?.key) {
-      setSel(j.key)
-      setPendingNew(null)
-    }
-  }, [pendingNew, jobs])
+  // 새 채팅: 끝난 질문 카드는 치우고(진행 중인 것은 유지) 시작 화면으로
+  const newChat = (): void => {
+    setStartJobs((p) => p.filter((id) => jobs[id] && (jobs[id].state === 'running' || jobs[id].state === 'queued')))
+    setSel(null)
+  }
 
   const running = new Set(
     Object.values(jobs).filter((j) => j.key && (j.state === 'running' || j.state === 'queued')).map((j) => j.key as string)
@@ -69,13 +82,19 @@ export function App(): React.JSX.Element {
   const unfinished = topic ? topic.rounds > rounds.length && live.length === 0 : false
 
   return (
-    <div className="app">
+    <div className={'app' + (side ? '' : ' collapsed')}>
       <div className="topdrag" />
-      <Sidebar data={data} selected={sel} running={running} onSelect={setSel} onNew={() => setSel(null)} onChange={refresh} onError={setErr} />
+      <button className="sidetoggle" title={side ? '사이드바 접기' : '사이드바 펴기'} aria-label="사이드바 접기/펴기" onClick={toggleSide}>
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <rect x="2" y="3.5" width="16" height="13" rx="3" fill="currentColor" opacity=".28" />
+          <path d="M5 3.5h3.5v13H5a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3z" fill="currentColor" />
+        </svg>
+      </button>
+      <Sidebar hidden={!side} data={data} selected={sel} running={running} onSelect={setSel} onNew={newChat} onChange={refresh} onError={setErr} />
       <main className="main">
         {topic ? (
           <>
-            <TopicView key={sel} title={topic.topic} rounds={rounds}>
+            <TopicView key={sel} title={topic.topic} rounds={rounds} onBack={() => setSel(null)}>
               {live.map((j) => (
                 <JobProgress key={j.id} job={j} />
               ))}
@@ -88,7 +107,19 @@ export function App(): React.JSX.Element {
           </>
         ) : (
           <div className="start">
-            <h1>무엇을 검색할까요?</h1>
+            <div className="start-top">
+              <h1>무엇을 검색할까요?</h1>
+              <div className="startjobs">
+                {[...startJobs].reverse().slice(0, 10).map((id) => jobs[id] && (
+                  <JobProgress
+                    key={id}
+                    job={jobs[id]}
+                    onOpen={jobs[id].key ? () => setSel(jobs[id].key) : undefined}
+                    onClose={() => setStartJobs((p) => p.filter((x) => x !== id))}
+                  />
+                ))}
+              </div>
+            </div>
             <ChatInput placeholder="질문을 입력하고 Enter (Shift+Enter 줄바꿈)" onSubmit={(t) => ask(t)} />
             {err && <div className="err">{err}</div>}
           </div>

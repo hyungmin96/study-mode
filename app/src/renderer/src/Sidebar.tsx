@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { IndexData, MenuTarget } from '../../shared/types'
 
 interface Props {
+  hidden?: boolean
   data: IndexData
   selected: string | null
   running: Set<string>
@@ -14,8 +15,8 @@ interface Props {
 function FolderIcon({ open }: { open: boolean }): React.JSX.Element {
   return (
     <svg className="ficon" viewBox="0 0 20 16" aria-hidden="true">
-      <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h4.6l1.8 2H17.5A1.5 1.5 0 0 1 19 4.5V13.5A1.5 1.5 0 0 1 17.5 15h-15A1.5 1.5 0 0 1 1 13.5z" fill="#e0a800" />
-      <path d={open ? 'M1 7h18l-1.6 7.3a1 1 0 0 1-1 .7H2.6a1 1 0 0 1-1-.7z' : 'M1 5h18v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 1 13.5z'} fill="#ffd54a" />
+      <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h4.6l1.8 2H17.5A1.5 1.5 0 0 1 19 4.5V13.5A1.5 1.5 0 0 1 17.5 15h-15A1.5 1.5 0 0 1 1 13.5z" fill="#b58900" />
+      <path d={open ? 'M1 7h18l-1.6 7.3a1 1 0 0 1-1 .7H2.6a1 1 0 0 1-1-.7z' : 'M1 5h18v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 1 13.5z'} fill="#d4a017" />
     </svg>
   )
 }
@@ -23,7 +24,7 @@ function FolderIcon({ open }: { open: boolean }): React.JSX.Element {
 function ChatPlusIcon(): React.JSX.Element {
   return (
     <svg className="bicon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M4 2.5h12A2.5 2.5 0 0 1 18.5 5v7A2.5 2.5 0 0 1 16 14.5H9.5L5.5 18v-3.5H4A2.5 2.5 0 0 1 1.5 12V5A2.5 2.5 0 0 1 4 2.5z" fill="#4c7dff" />
+      <path d="M4 2.5h12A2.5 2.5 0 0 1 18.5 5v7A2.5 2.5 0 0 1 16 14.5H9.5L5.5 18v-3.5H4A2.5 2.5 0 0 1 1.5 12V5A2.5 2.5 0 0 1 4 2.5z" fill="#3f63b8" />
       <path d="M10 5.5v6M7 8.5h6" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   )
@@ -31,7 +32,7 @@ function ChatPlusIcon(): React.JSX.Element {
 function FolderPlusIcon(): React.JSX.Element {
   return (
     <svg className="bicon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M1.5 5A1.5 1.5 0 0 1 3 3.5h4.2l1.7 1.8H17A1.5 1.5 0 0 1 18.5 6.8V15A1.5 1.5 0 0 1 17 16.5H3A1.5 1.5 0 0 1 1.5 15z" fill="#f2b705" />
+      <path d="M1.5 5A1.5 1.5 0 0 1 3 3.5h4.2l1.7 1.8H17A1.5 1.5 0 0 1 18.5 6.8V15A1.5 1.5 0 0 1 17 16.5H3A1.5 1.5 0 0 1 1.5 15z" fill="#b98a00" />
       <path d="M10 8v5.5M7.25 10.75h5.5" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   )
@@ -39,8 +40,8 @@ function FolderPlusIcon(): React.JSX.Element {
 function TrashIcon(): React.JSX.Element {
   return (
     <svg className="bicon" viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M7.5 2.5h5l.6 1.5H17a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 3 4h3.9z" fill="#ef5350" />
-      <path d="M4.5 7h11l-.8 9.2a1.5 1.5 0 0 1-1.5 1.3H6.8a1.5 1.5 0 0 1-1.5-1.3z" fill="#ef5350" />
+      <path d="M7.5 2.5h5l.6 1.5H17a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 3 4h3.9z" fill="#b94a48" />
+      <path d="M4.5 7h11l-.8 9.2a1.5 1.5 0 0 1-1.5 1.3H6.8a1.5 1.5 0 0 1-1.5-1.3z" fill="#b94a48" />
       <path d="M8.2 9.5v5M11.8 9.5v5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   )
@@ -49,7 +50,7 @@ function TrashIcon(): React.JSX.Element {
 type Ref = { kind: 'folder' | 'topic'; id: string }
 const same = (a: Ref | null, b: Ref): boolean => !!a && a.kind === b.kind && a.id === b.id
 
-export function Sidebar({ data, selected, running, onSelect, onNew, onChange, onError }: Props): React.JSX.Element {
+export function Sidebar({ hidden, data, selected, running, onSelect, onNew, onChange, onError }: Props): React.JSX.Element {
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const [editing, setEditing] = useState<Ref | null>(null)
   const [over, setOver] = useState<string | null>(null) // 드롭 대상 폴더 id, '' = 최상위
@@ -212,7 +213,7 @@ export function Sidebar({ data, selected, running, onSelect, onNew, onChange, on
         {...dragProps(ref)}
       >
         {delMode && check('t:' + k, underPicked(t.folder ?? null))}
-        {label(ref, t.topic, running.has(k) ? '⏳ ' : '')}
+        {label(ref, t.topic, running.has(k) ? <span className="spinner sm" /> : '')}
       </div>
     )
   }
@@ -250,7 +251,7 @@ export function Sidebar({ data, selected, running, onSelect, onNew, onChange, on
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={'sidebar' + (hidden ? ' hidden' : '')}>
       <div className="drag" />
       <div className="newrow">
         <button className="new" onClick={() => { leaveDel(); onNew() }}><ChatPlusIcon />새 채팅</button>

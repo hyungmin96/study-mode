@@ -66,6 +66,7 @@ export class JobManager {
     // 첫 단어가 기존 key 와 겹쳐 후속 질문으로 오인되지 않도록, 새 주제도 그대로 넘기되 key 가 있으면 앞에 붙인다.
     const args = [join(this.home, 'study.py'), 'run', '--no-open', '--no-html']
     if (job.key) args.push(job.key)
+    else args.push('--new') // 새 채팅의 질문은 항상 독립된 새 주제 (첫 단어가 기존 key 와 같아도)
     args.push(job.question)
     const p = spawn('python3', args, {
       cwd: this.home,
