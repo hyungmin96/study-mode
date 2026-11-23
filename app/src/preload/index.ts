@@ -6,6 +6,7 @@ const api: StudyApi = {
   getTopic: (key) => ipcRenderer.invoke('topic:get', key),
   ask: (req) => ipcRenderer.invoke('job:ask', req),
   listJobs: () => ipcRenderer.invoke('job:list'),
+  cancelJob: (id) => ipcRenderer.invoke('job:cancel', id),
   createFolder: (n, p) => ipcRenderer.invoke('folder:create', n, p),
   renameFolder: (i, n) => ipcRenderer.invoke('folder:rename', i, n),
   renameTopic: (k, n) => ipcRenderer.invoke('topic:rename', k, n),

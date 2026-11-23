@@ -1,7 +1,8 @@
 import { spawn, execFileSync, type ChildProcess } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, readdirSync, rmSync } from 'fs'
 import { join } from 'path'
 import type { JobInfo, StageState } from '../shared/types'
+import type { Store } from './store'
 
 const SRCS = ['codex'] as const
 
@@ -29,7 +30,8 @@ export class JobManager {
 
   constructor(
     private home: string,
-    private emit: (j: JobInfo) => void
+    private emit: (j: JobInfo) => void,
+    private store?: Store
   ) {}
 
   list(): JobInfo[] {
@@ -44,7 +46,8 @@ export class JobManager {
       question: req.question.trim(),
       state: 'queued',
       stages: { codex: 'wait', finish: 'wait' },
-      substitute: {}
+      substitute: {},
+      fresh: !req.key
     }
     this.jobs.set(id, job)
     this.emit(job)
@@ -91,7 +94,10 @@ export class JobManager {
       clearInterval(timer)
       this.procs.delete(job.id)
       this.poll(job)
-      if (job.state === 'cancelled') return this.finishUp(job)
+      if (job.state === 'cancelled') {
+        this.cleanup(job)
+        return this.finishUp(job)
+      }
       const fin = this.rdirs.has(job.id) ? join(this.rdirs.get(job.id)!, 'finish.done') : ''
       const ok = code === 0 && fin && existsSync(fin) && readFileSync(fin, 'utf8') === 'ok'
       job.state = ok ? 'done' : 'failed'
@@ -131,6 +137,36 @@ export class JobManager {
       if (existsSync(sub) && !job.substitute[s]) { job.substitute[s] = readFileSync(sub, 'utf8').trim(); changed = true }
     }
     if (changed) this.emit(job)
+  }
+
+  /** 사용자가 질문 하나를 취소한다. 진행 중이면 프로세스를 끊고 만들다 만 라운드(새 주제면 주제 전체)를 지운다. */
+  cancel(id: string): void {
+    const job = this.jobs.get(id)
+    if (!job || (job.state !== 'queued' && job.state !== 'running')) return
+    const p = this.procs.get(id)
+    job.state = 'cancelled'
+    if (p) {
+      try { if (p.pid) process.kill(-p.pid, 'SIGTERM') } catch { /* 이미 종료 */ }
+      return // 정리는 프로세스 종료(close) 후 cleanup 에서
+    }
+    this.finishUp(job)
+  }
+
+  private cleanup(job: JobInfo): void {
+    const rd = this.rdirs.get(job.id)
+    const key = job.key
+    if (!key || !this.store) return
+    try {
+      if (job.fresh) {
+        rmSync(join(this.home, 'data', key), { recursive: true, force: true })
+        void this.store.update((d) => { delete d.topics[key] }).then(() => this.emit(job))
+      } else {
+        if (rd && !existsSync(join(rd, 'chunks.html'))) rmSync(rd, { recursive: true, force: true })
+        const dir = join(this.home, 'data', key, 'rounds')
+        const n = existsSync(dir) ? readdirSync(dir).length : 0
+        void this.store.update((d) => { if (d.topics[key]) d.topics[key].rounds = Math.max(n, 1) }).then(() => this.emit(job))
+      }
+    } catch { /* 정리 실패는 무시 */ }
   }
 
   /** 앱 종료 시 진행 중 작업을 모두 중단한다. 라운드 폴더에 chunks.html 이 없으면 다음 실행에서 "중단됨"으로 보인다. */

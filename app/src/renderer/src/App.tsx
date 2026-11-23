@@ -40,7 +40,7 @@ export function App(): React.JSX.Element {
         const prev = p[j.id]
         // 새 주제: key 가 정해지는 순간 사이드바에 나타나고 그 주제로 이동한다
         if (j.key && !prev?.key) refresh()
-        if (j.state === 'done' || j.state === 'failed') refresh()
+        if (j.state === 'done' || j.state === 'failed' || j.state === 'cancelled') refresh()
         return { ...p, [j.id]: j }
       })
     })
@@ -94,9 +94,9 @@ export function App(): React.JSX.Element {
       <main className="main">
         {topic ? (
           <>
-            <TopicView key={sel} title={topic.topic} rounds={rounds} onBack={() => setSel(null)}>
+            <TopicView key={sel} title={topic.topic} rounds={rounds} onBack={() => setSel(null)} onAsk={(q) => ask(q, sel!)}>
               {live.map((j) => (
-                <JobProgress key={j.id} job={j} />
+                <JobProgress key={j.id} job={j} reveal onCancel={() => window.study.cancelJob(j.id)} />
               ))}
               {unfinished && <div className="job bad"><div className="js">마지막 질문이 중단되었습니다. 같은 질문을 다시 입력해 주세요.</div></div>}
             </TopicView>
@@ -110,12 +110,13 @@ export function App(): React.JSX.Element {
             <div className="start-top">
               <h1>무엇을 검색할까요?</h1>
               <div className="startjobs">
-                {[...startJobs].reverse().slice(0, 10).map((id) => jobs[id] && (
+                {[...startJobs].filter((id) => jobs[id] && jobs[id].state !== 'cancelled' && (!jobs[id].key || data.topics[jobs[id].key as string])).reverse().slice(0, 10).map((id) => (
                   <JobProgress
                     key={id}
                     job={jobs[id]}
                     onOpen={jobs[id].key ? () => setSel(jobs[id].key) : undefined}
                     onClose={() => setStartJobs((p) => p.filter((x) => x !== id))}
+                    onCancel={() => window.study.cancelJob(id)}
                   />
                 ))}
               </div>

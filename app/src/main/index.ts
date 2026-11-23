@@ -62,7 +62,7 @@ app.whenReady().then(async () => {
   if (!home) return app.quit()
   studyHome = home
   store = new Store(join(studyHome, 'data'))
-  jobs = new JobManager(studyHome, (j) => BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('job:event', j)))
+  jobs = new JobManager(studyHome, (j) => BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('job:event', j)), store)
   store.migrate()
   ipcMain.handle('index:list', () => store.read())
   ipcMain.handle('topic:get', (_e, key: string): Round[] => {
@@ -74,7 +74,28 @@ app.whenReady().then(async () => {
       const ch = join(dir, name, 'chunks.html')
       if (!existsSync(ch)) continue
       const q = join(dir, name, 'question.txt')
+      let suggest: string[] = []
+      let tokens = 0
+      let cached = 0
+      let stages: Record<string, number> = {}
+      try {
+        const sf = join(dir, name, 'suggest.json')
+        if (existsSync(sf)) suggest = (JSON.parse(readFileSync(sf, 'utf8')) as string[]).filter((x) => typeof x === 'string').slice(0, 3)
+        const tf = join(dir, name, 'tokens.json')
+        if (existsSync(tf)) {
+          const raw = JSON.parse(readFileSync(tf, 'utf8')) as Record<string, number>
+          cached = Number(raw._cached) || 0
+          stages = Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith('_')))
+          tokens = Object.values(stages).reduce((a, b) => a + (Number(b) || 0), 0)
+        }
+      } catch {
+        /* 보조 정보 읽기 실패는 무시 */
+      }
       out.push({
+        suggest,
+        tokens,
+        cached,
+        stages,
         n: parseInt(name, 10),
         question: existsSync(q) ? readFileSync(q, 'utf8').trim() : '',
         // 구버전 배지 제거 (study.py rebuild 와 동일)
@@ -90,6 +111,7 @@ app.whenReady().then(async () => {
   })
   registerOps(studyHome, store, jobs)
   ipcMain.handle('job:list', () => jobs.list())
+  ipcMain.handle('job:cancel', (_e, id: string) => jobs.cancel(id))
   createWindow()
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow())
 })

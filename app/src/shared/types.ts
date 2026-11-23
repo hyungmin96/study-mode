@@ -11,7 +11,7 @@ export interface IndexData {
   folders: Record<string, Folder>
   topics: Record<string, Topic>
 }
-export interface Round { n: number; question: string; html: string }
+export interface Round { n: number; question: string; html: string; suggest: string[]; tokens: number; cached: number; stages: Record<string, number> }
 export type StageState = 'wait' | 'run' | 'ok' | 'fail'
 export type JobState = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
 export interface JobInfo {
@@ -22,6 +22,7 @@ export interface JobInfo {
   stages: Record<'codex' | 'finish', StageState>
   substitute: Record<string, string> // 대체 수집 표시 (src → 대체 모델)
   error?: string
+  fresh?: boolean // 새 주제로 시작한 질문
 }
 export type MenuTarget = { kind: 'root' } | { kind: 'folder' | 'topic'; id: string }
 export type MenuAction =
@@ -34,6 +35,7 @@ export interface StudyApi {
   getTopic(key: string): Promise<Round[]>
   ask(req: { key?: string; question: string }): Promise<string>
   listJobs(): Promise<JobInfo[]>
+  cancelJob(id: string): Promise<void>
   onJob(cb: (j: JobInfo) => void): () => void
   createFolder(name: string, parent: string | null): Promise<string>
   renameFolder(id: string, name: string): Promise<void>

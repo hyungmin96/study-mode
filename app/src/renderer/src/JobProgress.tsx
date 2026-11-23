@@ -1,11 +1,5 @@
+import { useEffect, useRef } from 'react'
 import type { JobInfo, StageState } from '../../shared/types'
-
-// 수집 → 정리 → 완료 (완료는 작업이 끝난 뒤에만 켜진다)
-const NAMES: ['codex' | 'finish' | 'complete', string][] = [
-  ['codex', '수집'],
-  ['finish', '정리'],
-  ['complete', '완료']
-]
 
 function Mark({ st }: { st: StageState }): React.JSX.Element {
   if (st === 'run') return <span className="spinner" aria-label="진행 중" />
@@ -18,16 +12,22 @@ interface Props {
   job: JobInfo
   onOpen?: () => void // 완료된 카드를 누르면 답변을 연다
   onClose?: () => void // 실패한 카드를 치운다
+  reveal?: boolean // 나타날 때 화면 안으로 스크롤 (주제 화면 하단 진행 카드)
+  onCancel?: () => void // 진행 중인 질문을 취소한다 (카드에 마우스를 올릴 때만 ✕ 표시)
 }
 
-export function JobProgress({ job, onOpen, onClose }: Props): React.JSX.Element {
+export function JobProgress({ job, onOpen, onClose, onCancel, reveal }: Props): React.JSX.Element {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (reveal) ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const failed = job.state === 'failed'
   const done = job.state === 'done'
   const active = job.state === 'running'
-  const st = (k: 'codex' | 'finish' | 'complete'): StageState => (k === 'complete' ? (done ? 'ok' : 'wait') : job.stages[k])
   const clickable = done && !!onOpen
   return (
     <div
+      ref={ref}
       className={'job' + (failed ? ' bad' : '') + (done ? ' done' : '') + (active ? ' active' : '') + (clickable ? ' clickable' : '')}
       onClick={clickable ? onOpen : undefined}
       role={clickable ? 'button' : undefined}
@@ -36,24 +36,23 @@ export function JobProgress({ job, onOpen, onClose }: Props): React.JSX.Element 
         <div className="jq">{job.question}</div>
         {clickable && <span className="jopen">답변 보기 ›</span>}
         {failed && onClose && <button className="jclose" aria-label="닫기" onClick={onClose}>✕</button>}
+        {(job.state === 'running' || job.state === 'queued') && onCancel && (
+          <button className="jcancel" aria-label="취소" title="취소" onClick={(e) => { e.stopPropagation(); onCancel() }}>✕</button>
+        )}
       </div>
-      {job.state === 'queued' ? (
+      {done ? (
+        <div className="stages"><span className="st ok"><Mark st="ok" />완료</span></div>
+      ) : job.state === 'queued' ? (
         <div className="js">대기 중<span className="dots" /></div>
-      ) : (
+      ) : failed ? null : (
         <div className="stages">
-          {NAMES.map(([k, label], i) => (
-            <span key={k} className="stwrap">
-              {i > 0 && <span className={'link' + (st(NAMES[i - 1][0]) === 'ok' ? ' on' : '')} />}
-              <span className={'st ' + st(k)}>
-                <Mark st={st(k)} />
-                {label}
-                {st(k) === 'run' && <span className="dots" />}
-              </span>
-            </span>
-          ))}
+          <span className="st run">
+            <span className="spinner" aria-label="진행 중" />
+            {job.stages.codex === 'ok' || job.stages.finish === 'run' ? '정리 중' : '수집 중'}
+            <span className="dots" />
+          </span>
         </div>
       )}
-      {active && <div className="jbar"><i /></div>}
       {failed && <div className="js">실패: {job.error}</div>}
     </div>
   )

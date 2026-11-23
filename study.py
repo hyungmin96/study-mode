@@ -45,13 +45,21 @@ def collect_prompt(question, ctx=""):
                 "(표의 행·열 항목, 그림의 구성 요소와 관계). 요청과 상관없는 새 주제나 부연 설명은 덧붙이지 마세요. "
                 "그림·표 자체는 다음 단계가 만드니, 그 재료가 되는 내용을 소제목과 목록으로 정리하세요. "
                 "되묻거나 계획·확인 요청을 하지 말고 바로 본문만 작성하세요.")
-    return (head + "위 질문에 대한 답만 작성하세요. 질문이 묻지 않은 내용(면접 꼬리 질문, 흔한 오해, 실무 예시 등)은 덧붙이지 마세요. "
-            "다만 질문 범위 안의 내용은 빠뜨리지 말고 깊이 있게 쓰세요. 다음 순서를 따르세요: "
-            "(1) 이것이 왜 필요한지·어떤 문제를 해결하는지, (2) 핵심 용어 정의(처음 보는 사람도 알 수 있게), "
-            "(3) 동작 과정을 단계별로 그리고 각 단계가 그렇게 동작하는 이유, (4) 관련된 상태·값·종류와 그 의미, "
-            "(5) 대안·비슷한 것과의 차이, (6) 주의할 점과 한계. 질문에 직접 닿는 것은 모두 포함합니다. "
-            "한두 문단으로 끝내지 말고 소제목과 목록으로 충분히 상세하게 설명하세요. "
-            "되묻거나 계획·확인 요청을 하지 말고 바로 본문만 작성하세요.")
+    return (head + "위 질문에 대한 답만 작성하세요. 질문이 묻지 않은 내용은 수집하지도 쓰지도 마세요. 먼저 질문 유형을 속으로 판단하되, 유형 이름·판단 과정은 본문에 절대 쓰지 마세요.\n"
+            "[유형 A: 개념·용어·주제를 묻는 질문] 예: '웹서버란 무엇인가', '하네스 엔지니어링', 'AI agent', '금융이란'. "
+            "특히 질문이 모호하거나 범위가 넓은 경우 포함. 질문에 쓰인 단어 그대로의 객관적 개념(정의)과 그 개념 자체의 특징·구성·종류만 설명하세요. "
+            "그 개념이 왜 필요한지, 핵심 용어 모음, 동작 과정, 설정·값, 대안과의 비교, 주의점·한계, 실무 활용, 예상 질문은 쓰지 마세요"
+            "(사용자가 꼬리질문으로 따로 물을 내용입니다). 곁가지로 넓히지는 말되, 개념이 충분히 이해되도록 정의는 구체적으로, "
+            "특징·구성·종류는 항목마다 한두 문장으로 의미까지 풀어 쓰세요.\n"
+"[유형 B: 방법·절차·과정·원인·이유를 묻는 질문] 예: 'AI agent 토큰 절약하는 방법', 'TCP 3-way handshake 과정'. "
+            "묻는 방법·절차를 단계별로, 각 단계의 이유와 필요한 값·조건과 함께 깊이 있게 설명하세요. 그 방법과 직접 관련 없는 배경 개념 설명은 최소화하세요.\n"
+            "소제목과 목록을 사용하고 질문 범위 안의 내용은 빠뜨리지 마세요. "
+            "되묻거나 계획·확인 요청을 하지 말고 바로 본문만 작성하세요.\n"
+            "[출력 형식] 첫 줄은 'TITLE: 이 주제의 짧은 이름(20자 이내, 질문의 핵심 용어)'. 둘째 줄부터 본문: '## 이모지 소제목'(소제목 15자 이내, 내용에 어울리는 이모지 하나 + 공백 + 소제목 예: '## 🧩 주요 구성')마다 먼저 핵심을 한 문장으로 쓰고(문단), 그 아래에 목록으로 풀어 쓰세요. "
+            "본문이 끝나면 마지막에 'NEXT:' 줄을 쓰고 그 아래에 이 질문과 연관해 이어서 알아두면 좋은 질문 3개를 한 줄에 하나씩 쓰세요. "
+            "번호·기호 없이 완결된 질문 문장으로, 이 개념을 이해하는 데 바로 이어지는 연관 개념·필요한 이유·비슷한 것과의 차이를 묻는 질문으로 하세요"
+            "(예: 'Web server' → 'WAS 서버란?', 'Web server가 있으면 좋은 이유는?', 'Web server와 WAS의 차이는?'). "
+            "고급·심화 주제나 구현 방법 질문은 피하고, 본문에서 이미 다룬 내용은 빼고 서로 겹치지 않게 하세요.")
 
 # Haiku 실패 시 예비: agy의 Claude·GPT 한도 그룹 (agy 기본 Gemini는 60~300초라 제외, gpt-oss는 plan 모드에서 계획서만 써서 제외)
 AGY_CLAUDE_MODEL = "claude-sonnet-4-6"
@@ -149,11 +157,11 @@ def clean(text):
     return text.strip()
 
 
-def run_cmd(cmd, timeout, stdin=None, cwd=None):
+def run_cmd(cmd, timeout, stdin=None, cwd=None, env=None):
     try:
         # 입력이 없으면 빈 입력(DEVNULL)을 준다. 터미널 없이 실행하면 codex 등이 stdin을 기다리며 멈춘다
         kw = {"input": stdin} if stdin is not None else {"stdin": subprocess.DEVNULL}
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(cwd or ROOT), **kw)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(cwd or ROOT), env=env, **kw)
         return p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired:
         return 124, "", f"timeout {timeout}s"
@@ -194,22 +202,64 @@ def wants_visual(question):
     return bool(WANT_VISUAL.search(question))
 
 
+# 단순 검색에는 도구·플러그인·브라우저가 필요 없다. 끄면 호출마다 깔리는 고정 입력이 약 16k → 8.7k 토큰으로 줄어든다
+CODEX_OFF = ["shell_tool", "image_generation", "apps", "browser_use", "browser_use_external", "computer_use", "in_app_browser",
+             "plugins", "goals", "hooks", "skill_search", "tool_suggest", "sleep_tool", "shell_snapshot"]
+
+
+def _codex_env():
+    """사용자 codex 설정(플러그인·MCP·AGENTS)을 읽지 않도록 로그인 정보만 연결한 전용 CODEX_HOME 을 쓴다."""
+    home = Path(os.environ.get("TMPDIR", "/tmp")) / "study-codex-home"
+    home.mkdir(parents=True, exist_ok=True)
+    auth = Path.home() / ".codex" / "auth.json"
+    link = home / "auth.json"
+    if auth.exists() and not link.exists():
+        link.symlink_to(auth)
+    (home / "config.toml").write_text(f'model = "{CODEX_MODEL}"\n')
+    return {**os.environ, "CODEX_HOME": str(home)}
+
+
 def codex_json(system, prompt, timeout=None):
     """codex exec(CODEX_MODEL) 호출. 반환: (rc, 본문, stderr, 사용량 dict) — claude_json 과 같은 형태."""
     tmp = Path(f"{os.getpid()}-{random.randrange(10**6)}.codex.out")
     tmp = Path(os.environ.get("TMPDIR", "/tmp")) / tmp
     t0 = time.time()
     cmd = ["codex", "exec", "-m", CODEX_MODEL, "-s", "read-only", "--skip-git-repo-check", "--ephemeral",
-           "-c", "model_reasoning_effort=high", "-c", "project_doc_max_bytes=0", "-o", str(tmp), "-"]
+           "-c", "model_reasoning_effort=high", "-c", "project_doc_max_bytes=0", "-c", "web_search=disabled"]
+    for f in CODEX_OFF:
+        cmd += ["-c", f"features.{f}=false"]
+    cmd += ["--json", "-o", str(tmp), "-"]
     # 단순 검색 호출: 프로젝트 파일이 없는 빈 폴더에서 실행해 질문 외 자료를 읽지 않게 한다
     empty = Path(os.environ.get("TMPDIR", "/tmp")) / "study-codex-empty"
     empty.mkdir(parents=True, exist_ok=True)
-    rc, so, se = run_cmd(cmd, timeout or CLAUDE_TIMEOUT, stdin=f"{system}\n\n{prompt}", cwd=empty)
+    rc, so, se = run_cmd(cmd, timeout or CLAUDE_TIMEOUT, stdin=f"{system}\n\n{prompt}", cwd=empty, env=_codex_env())
     try:
         text = tmp.read_text() if tmp.exists() else ""
     finally:
         tmp.unlink(missing_ok=True)
-    return rc, text, se, {"model": CODEX_MODEL, "sec": round(time.time() - t0, 1)}
+    usage = {}
+    for ln in (so or "").splitlines():
+        if '"turn.completed"' in ln:
+            try:
+                usage = json.loads(ln).get("usage", {})
+            except ValueError:
+                pass
+    tin, tout, tcache = usage.get("input_tokens", 0), usage.get("output_tokens", 0), usage.get("cached_input_tokens", 0)
+    # 총 사용 = (입력 - 캐시된 입력) + 출력. 캐시된 입력은 뺀 값을 센다
+    return rc, text, se, {"model": CODEX_MODEL, "sec": round(time.time() - t0, 1), "tokens": max(tin - tcache, 0) + tout,
+                          "cached": tcache, "in": tin, "out": tout}
+
+
+def add_tokens(rd, stage, n, cached=0):
+    """라운드 폴더의 tokens.json 에 단계별 사용 토큰을 누적한다 (앱이 합산해 표시)."""
+    f = Path(rd) / "tokens.json"
+    try:
+        d = json.loads(f.read_text()) if f.exists() else {}
+    except ValueError:
+        d = {}
+    d[stage] = d.get(stage, 0) + int(n or 0)
+    d["_cached"] = d.get("_cached", 0) + int(cached or 0)
+    f.write_text(json.dumps(d))
 
 
 # ---------- 시각화: Opus는 JSON 명세만 내고, 그리기는 코드가 한다 (토큰 절약 + 레이아웃 안정) ----------
@@ -535,6 +585,28 @@ def collect_agy(prompt, rd):
     return rc or 1, "", f"{why} / {HAIKU_MODEL} 실패 rc={rc} {clean(se)[:100]}"
 
 
+def split_meta(rd, text):
+    """수집 답변의 TITLE: 첫 줄과 NEXT: 이어질 질문 3개를 떼어 title.txt, suggest.json 에 저장하고 본문만 돌려준다.
+    모델이 '**NEXT:**', '## NEXT:' 처럼 꾸며 써도 줄 맨 앞의 NEXT 표지를 찾아 본문에서 반드시 제거한다."""
+    rd = Path(rd)
+    m = re.match(r"\s*[#*_>\s]*TITLE\s*[:：][*_\s]*(.+)\n", text, re.I)
+    if m:
+        (rd / "title.txt").write_text(m.group(1).strip().strip("*_ "))
+        text = text[m.end():]
+    mn = re.search(r"(?im)^[ \t>#*_-]*NEXT\s*[:：][*_ \t]*", text)
+    nxt = ""
+    if mn:
+        nxt = text[mn.end():]
+        text = text[:mn.start()]
+    sug = []
+    for l in nxt.splitlines():
+        l = re.sub(r"^[\s\-*\d.)>]+", "", l).strip().strip("*_ ")
+        if l and not re.match(r"(?i)^(NEXT|TITLE)\b", l):
+            sug.append(l)
+    (rd / "suggest.json").write_text(json.dumps(sug[:3], ensure_ascii=False))
+    return text.strip()
+
+
 def collect(src, rd):
     rd = Path(rd)
     prompt = (rd / "prompt.txt").read_text()
@@ -542,8 +614,9 @@ def collect(src, rd):
     print(f"[{src}] 수집 시작", flush=True)
     t = time.time()
     if src == "codex":
-        rc, text, se, _ = codex_json("", prompt, COLLECT_TIMEOUT)
-        text = clean(text)
+        rc, text, se, cm = codex_json("", prompt, COLLECT_TIMEOUT)
+        add_tokens(rd, "collect", cm.get("tokens"), cm.get("cached"))
+        text = split_meta(rd, clean(text))
         so = ""
     elif src == "haiku":
         rc, text, se = collect_haiku(prompt, rd)
@@ -612,6 +685,75 @@ def finish(rd):
 TEMPLATE = (ROOT / "template.html")
 
 
+def _inline(t):
+    t = html.escape(t, quote=False)
+    t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+    return re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", t)
+
+
+def md_to_chunks(text, first_title):
+    """수집 마크다운(## 소제목, 문단, 목록)을 앱이 렌더하는 section.chunk HTML 로 바꾼다 (모델 호출 없음)."""
+    parts = re.split(r"(?m)^##\s+", text.strip())
+    chunks = [(first_title, parts[0])] if parts[0].strip() else []
+    for p in parts[1:]:
+        head, _, body = p.partition("\n")
+        chunks.append((head.strip(), body))
+    out = []
+    for title, body in chunks:
+        title = re.sub(r"[*`#]", "", title).strip()
+        me = re.match(r"^([\U0001F000-\U0001FFFF\u2190-\u2BFF\u2600-\u27BF\uFE0F\u200d]+)\s*", title)
+        emoji, title = (me.group(1), title[me.end():]) if me else ("📌", title)
+        title = title.strip()[:20] or first_title
+        h = [f'<section class="chunk" data-title="{html.escape(title)}">', f'  <h2><span class="em">{emoji}</span>{_inline(title)}</h2>']
+        stack = None   # 열린 목록 태그 (ul/ol)
+        item_open = False
+        sub_open = False
+        para = []
+        def close_all():
+            nonlocal stack, item_open, sub_open
+            if sub_open:
+                h.append("</ul>"); sub_open = False
+            if item_open:
+                h.append("</li>"); item_open = False
+            if stack:
+                h.append(f"</{stack}>"); stack = None
+        def flush_para():
+            if para:
+                cls = ' class="gist"' if len(h) == 2 else ""
+                h.append(f"<p{cls}>" + "<br>".join(_inline(x) for x in para) + "</p>")
+                para.clear()
+        for ln in body.splitlines():
+            if not ln.strip():
+                flush_para()
+                continue
+            mt = re.match(r"^(\s*)([-*]|\d+[.)])\s+(.*)$", ln)
+            if mt and len(mt.group(1)) < 2:
+                flush_para()
+                if sub_open:
+                    h.append("</ul>"); sub_open = False
+                if item_open:
+                    h.append("</li>"); item_open = False
+                tag = "ol" if mt.group(2)[0].isdigit() else "ul"
+                if stack and stack != tag:
+                    h.append(f"</{stack}>"); stack = None
+                if not stack:
+                    h.append(f"<{tag}>"); stack = tag
+                h.append("<li>" + _inline(mt.group(3))); item_open = True
+            elif mt and item_open:
+                if not sub_open:
+                    h.append("<ul>"); sub_open = True
+                h.append("<li>" + _inline(mt.group(3)) + "</li>")
+            elif item_open:
+                h.append("<br>" + _inline(ln.strip()))
+            else:
+                close_all()
+                para.append(ln.strip())
+        flush_para(); close_all()
+        h.append("</section>")
+        out.append("\n".join(h))
+    return "\n".join(out)
+
+
 def render(rd):
     idx = load_index()
     key = rd.parent.parent.name
@@ -628,6 +770,10 @@ def render(rd):
     rules_block = (f"\n[시각화 규칙 - 도식(diagram)을 그릴 때만 아래를 따른다]\n{rules}\n" if rules and want_vis else "")
     vis_rule = ("이번 질문은 표·이미지·정리를 요청했다. 요청에 맞게 표(<visual>)나 도식(<diagram>)을 section 안에 만들어 넣는다. 요청한 정리의 내용이 소스에 부족하면 당신의 지식으로 정확히 채운다."
                 if want_vis else "이번 질문은 표·이미지를 요청하지 않았다. <visual>, <diagram>, <ul class=\"legend\">, <p class=\"ask\">를 절대 쓰지 않고 글(gist, 목록)로만 답한다.")
+    next_rule = ("" if want_vis else
+                 "\n5. section들 뒤에 마지막으로 'NEXT:' 줄을 쓰고, 그 아래에 이 질문과 연관해 이어서 알아두면 좋은 질문 3개를 한 줄에 하나씩 쓴다. "
+                 "번호·기호 없이 완결된 질문 문장(예: 'WAS 서버란?', '웹 서버가 있으면 좋은 이유는?', '웹 서버와 WAS의 차이는?')으로, "
+                 "이번 답변에서 이미 다룬 내용은 빼고 서로 겹치지 않게 한다.")
     sys_chunk = (
         "당신은 학습 설계자다. 관련 개념끼리 묶는 chunking 원리로 내용을 정리하되, 요약하려고 내용을 버리지 않는다. "
         "사용자가 질문한 내용에 대한 답만 쓰고, 묻지 않은 내용(꼬리 질문, 오해, 실무 예시 등)은 추가하지 않는다. "
@@ -656,18 +802,28 @@ def render(rd):
 cols에는 값 열의 제목만 넣는다(맨 왼쪽 기준 열의 제목은 corner에 넣는다). rows의 각 행 길이는 반드시 cols 길이 + 1이다(맨 앞이 기준 이름).
 JSON은 한 줄이고 반드시 유효해야 한다. 사용할 수 있는 태그는 section,h2,p,ul,li,code,strong,span,visual,diagram 이다.
 {rules_block}4. 출력 형식: 첫 줄은 'TITLE: 이 주제의 짧은 이름(20자 이내)', 둘째 줄부터 section들만. 수정·보완 내역, 메모, 설명은 출력하지 않는다."""
-    rc, so, se, ometa = codex_json(sys_chunk, prompt)
-    if rc != 0 or not so.strip():
-        raise RuntimeError(f"{CODEX_MODEL} 정리 실패 rc={rc} {clean(se)[:200]}")
-    body = re.sub(r"^```\w*\n|\n```$", "", so.strip())
-    body, _, notes = body.partition("\nNOTES:")
-    (rd / "notes.txt").write_text(notes.strip())
-    m = re.match(r"TITLE:\s*(.+)\n", body)
-    title = m.group(1).strip() if m else meta["topic"]
-    body = body[m.end():] if m else body
-    if not want_vis:
-        body = re.sub(r"<visual>.*?</visual>|<diagram\b[^>]*>.*?</diagram>|<ul class=\"legend\">.*?</ul>|<p class=\"ask\">.*?</p>",
-                      "", body, flags=re.S)
+    fast = (not want_vis) and (rd / "codex.md").exists()
+    if fast:
+        # 표·그림 요청이 없으면 정리 호출 없이 수집 결과를 코드가 바로 변환한다 (토큰·시간 절약)
+        tf = rd / "title.txt"
+        title = tf.read_text().strip() if tf.exists() and tf.read_text().strip() else (meta["topic"] if not new else question[:30])
+        body = md_to_chunks((rd / "codex.md").read_text(), title)
+        ometa = {"model": "코드 변환", "sec": 0, "tokens": 0}
+    else:
+        rc, so, se, ometa = codex_json(sys_chunk, prompt)
+        add_tokens(rd, "render", ometa.get("tokens"), ometa.get("cached"))
+        if rc != 0 or not so.strip():
+            raise RuntimeError(f"{CODEX_MODEL} 정리 실패 rc={rc} {clean(se)[:200]}")
+        body = re.sub(r"^```\w*\n|\n```$", "", so.strip())
+        (rd / "suggest.json").write_text("[]")
+        body, _, notes = body.partition("\nNOTES:")
+        (rd / "notes.txt").write_text(notes.strip())
+        m = re.match(r"TITLE:\s*(.+)\n", body)
+        title = m.group(1).strip() if m else meta["topic"]
+        body = body[m.end():] if m else body
+        if not want_vis:
+            body = re.sub(r"<visual>.*?</visual>|<diagram\b[^>]*>.*?</diagram>|<ul class=\"legend\">.*?</ul>|<p class=\"ask\">.*?</p>",
+                          "", body, flags=re.S)
     stash = []   # Mermaid 코드가 아래 정리용 정규식(on*=)에 망가지지 않게 잠시 빼 둔다
     def _keep(mm):
         stash.append(mm.group(0))
@@ -822,6 +978,7 @@ rows 각 행 길이는 cols 길이 + 1, JSON은 한 줄이고 유효해야 한�
 {('[도식 규칙]' + chr(10) + rules) if rules else ''}
 출력: section들만. 첫 줄에 TITLE 같은 머리말을 쓰지 않는다."""
         rc, so, se, om = codex_json(sysm, prompt)
+        add_tokens(rd, "merge", om.get("tokens"), om.get("cached"))
         if rc != 0 or not so.strip():
             raise RuntimeError(f"{CODEX_MODEL} 시각화 실패 rc={rc} {clean(se)[:200]}")
         print("[정리] 표·그림 생성 시작", flush=True)
