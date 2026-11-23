@@ -1,0 +1,12 @@
+# 질문할 때마다 생성되는 파일
+data/
+html/
+
+# 앱 빌드·의존성 산출물
+app/node_modules/
+app/dist/
+app/out/
+app/*.tsbuildinfo
+__pycache__/
+*.bak
+.DS_Store

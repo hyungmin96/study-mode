@@ -1,0 +1,118 @@
+:root { color-scheme: light dark; --bg:#fff; --side:#f3f3f5; --fg:#1d1d1f; --mute:#6e6e73; --line:#e2e2e6; --accent:#3b6df0; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1c1c1e; --side:#252527; --fg:#f2f2f4; --mute:#9a9aa0; --line:#38383c; --accent:#6c93ff; } }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; overflow: hidden; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.6 -apple-system, "Apple SD Gothic Neo", sans-serif; }
+.app { display: flex; height: 100%; overflow: hidden; }
+.sidebar { width: 260px; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+.drag { height: 38px; }
+.topdrag { position: fixed; top: 0; left: 0; width: 100vw; height: 38px; z-index: 5; -webkit-app-region: drag; }
+.newrow { display: flex; gap: 6px; margin: 0 12px 8px; }
+.ibtn { width: 36px; flex: none; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); cursor: pointer; font-size: 18px; line-height: 1; }
+.ibtn:hover, .ibtn.active, .new:hover { background: var(--line); }
+.modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.modal { width: 300px; padding: 16px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+.modal-title { font-weight: 600; margin-bottom: 10px; }
+.modal input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--side); color: var(--fg); font: inherit; outline: none; }
+.modal input:focus { border-color: var(--accent); }
+.modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.modal-btns button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); cursor: pointer; }
+.modal-btns .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.modal-btns .primary:disabled { opacity: .4; cursor: default; }
+.new { flex: 1; margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); cursor: pointer; text-align: left; }
+.list { flex: 1; overflow-y: auto; padding-bottom: 12px; }
+.item { padding: 6px 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 6px; margin: 2px 6px; }
+.item:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.item.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.folder { margin-top: 8px; margin-bottom: 8px; font-weight: 600; background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.folder:hover { background: color-mix(in srgb, var(--fg) 12%, transparent); }
+.ficon { width: 15px; height: 12px; vertical-align: -1px; margin-right: 6px; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.start { flex: 1; display: flex; flex-direction: column; width: 100%; padding: 0 24px 16px; box-sizing: border-box; text-align: center; }
+.start h1 { font-weight: 600; margin: auto 0; }
+.start textarea, .composer textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--bg); border-radius: 10px; box-sizing: border-box; background: var(--line); color: var(--fg); font: inherit; resize: none; outline: none; }
+.start textarea:focus, .composer textarea:focus { border-color: var(--accent); }
+.placeholder { padding: 48px; }
+
+/* ---- 본문 (template.html 에서 이식) ---- */
+:root { --card:#fff; --ink:var(--fg); --sub:var(--mute); --acc:var(--accent); --accbg:#e9f0fe; --hook:#fff6e0; --hookb:#f0cf7a; --vhd:#2d3b5e; --vlab:#e8ecf4; --vz:#f5f7fb; --vln:#b6bfd3 }
+@media (prefers-color-scheme: dark) { :root { --card:#2a2a2c; --accbg:#1f2a40; --hook:#2e2814; --hookb:#6d5a1f; --vhd:#33477a; --vlab:#26303f; --vz:#1d2330; --vln:#3b455a } }
+.topic { flex: 1; min-height: 0; display: flex; }
+.scroller { position: relative; flex: 1; min-width: 0; overflow-y: auto; padding-top: 38px; }
+.doc { max-width: 860px; margin: 0 auto; padding: 8px 24px 90px; font-size: 13px; line-height: 1.65; }
+.doc h1 { margin: 0 0 6px; font-size: 1.7em; }
+.round { margin-top: 56px; scroll-margin-top: 16px } .round:first-of-type { margin-top: 28px }
+.q { font-size: 1.5em; line-height: 1.4; margin: 0 0 18px; padding: 14px 18px; background: var(--accbg); border-left: 6px solid var(--acc); border-radius: 10px; display: flex; gap: 12px; align-items: baseline }
+.q span { flex: none; color: #fff; background: var(--acc); border-radius: 8px; padding: 2px 12px; font-size: 1.05em; font-weight: 800 }
+.chunk { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin: 0 0 14px; scroll-margin-top: 16px }
+.chunk h2 { font-size: 1.1em; margin: 0 0 6px }
+.gist { margin: 0 0 8px; font-weight: 600 }
+.chunk ul { margin: 6px 0 10px; padding-left: 20px } .chunk li { margin: 3px 0 }
+.hook { margin: 8px 0 0; padding: 8px 12px; background: var(--hook); border-left: 3px solid var(--hookb); border-radius: 6px; font-size: .92em }
+.viz { margin: 12px 0 14px } .viz figcaption { font-size: .85em; font-weight: 700; color: var(--sub); margin: 0 0 6px }
+.viz > svg { width: 100%; height: auto; display: block }
+.viz:not(.diagram) text { font-family: inherit; font-size: 12px }
+.viz .hd { fill: var(--vhd) } .viz .hdt { fill: #fff; font-weight: 700 }
+.viz .lab { fill: var(--vlab) } .viz .labt { fill: var(--ink); font-weight: 700 }
+.viz .c0 { fill: var(--card) } .viz .c1 { fill: var(--vz) } .viz .ct { fill: var(--ink) }
+.viz .ln { stroke: var(--vln); stroke-width: 1 } .viz .bd { fill: none; stroke: var(--vln); stroke-width: 1 }
+.viz.diagram { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px }
+.viz pre.mermaid { margin: 0; background: none; padding: 0; text-align: center; font: 13px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; color: var(--sub); overflow-x: auto }
+.viz pre.mermaid[data-processed] { color: inherit }
+.viz pre.mermaid svg { margin: 0 auto; max-width: none; height: auto }
+.viz pre.mermaid.wide::after { content: "← 옆으로 밀어서 보기 →"; display: block; margin-top: 4px; font: .75em/1.4 sans-serif; color: var(--sub) }
+.legend { margin: 4px 0 10px; padding: 8px 12px 8px 28px; border: 1px dashed var(--line); border-radius: 8px; font-size: .88em } .legend li { margin: 2px 0 } .legend strong { color: var(--acc) }
+details.legend-all { margin: 4px 0 10px; font-size: .85em }
+details.legend-all > summary { cursor: pointer; color: var(--sub); list-style: none; display: inline-block; padding: 2px 0 }
+details.legend-all > summary::-webkit-details-marker { display: none }
+details.legend-all > summary::before { content: "▸ "; font-size: .75em } details.legend-all[open] > summary::before { content: "▾ " }
+.tip-hint { font-size: .75em; color: var(--sub); margin: 6px 0 0; text-align: right }
+.viz pre.mermaid .tip { cursor: pointer } .viz pre.mermaid .tip:hover { filter: brightness(1.35) } .viz pre.mermaid .tip.on { filter: drop-shadow(0 0 4px var(--acc)) }
+.memo { position: fixed; z-index: 30; max-width: 300px; padding: 10px 12px 10px 14px; background: var(--hook); border: 1px solid var(--hookb); border-left: 4px solid var(--hookb); border-radius: 8px; box-shadow: 0 6px 20px #0005; font-size: .86rem; line-height: 1.5; color: var(--ink) }
+.memo b { display: block; margin-bottom: 2px; color: var(--acc) }
+.memo .x { position: absolute; top: 2px; right: 7px; border: 0; background: none; color: var(--sub); font-size: 1rem; cursor: pointer; padding: 2px }
+.ask { margin: 6px 0 12px; padding: 8px 12px; background: var(--accbg); border-left: 3px solid var(--acc); border-radius: 6px; font-size: .92em }
+.ask::before { content: "설명해 보기 · "; font-weight: 700; color: var(--acc) }
+.doc table { border-collapse: collapse; width: 100%; font-size: .9em; margin: 6px 0 10px }
+.doc th, .doc td { border: 1px solid var(--line); padding: 6px 9px; text-align: left } .doc th { background: var(--side) }
+.doc code { font-family: ui-monospace, Menlo, monospace; font-size: .88em; background: var(--side); padding: 1px 5px; border-radius: 4px }
+
+/* ---- 우측 목차 ---- */
+.toc { width: 240px; flex: none; overflow-y: auto; padding: 44px 10px 24px; border-left: 1px solid var(--line); background: var(--side) }
+.toc a { display: block; cursor: pointer; border-radius: 6px }
+.toc .qh { display: flex; gap: 6px; padding: 6px 8px; font-size: .85rem; font-weight: 600; line-height: 1.35 }
+.toc .qh b { flex: none; color: #fff; background: var(--acc); border-radius: 5px; padding: 0 6px; font-size: .72rem; height: 1.3em }
+.toc .qh span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+.toc .qh:hover, .toc .sub:hover { background: var(--accbg) }
+.toc .rq.on > .qh { color: var(--acc) }
+.toc .sub { margin-left: 18px; padding: 4px 10px; font-size: .8rem; color: var(--sub); border-left: 1px solid var(--line); border-radius: 0 6px 6px 0 }
+.toc .sub.on { color: var(--acc); font-weight: 600; box-shadow: inset 2px 0 0 var(--acc) }
+
+/* ---- 입력·진행 (3단계) ---- */
+.composer { padding: 10px 24px 16px; border-top: 1px solid var(--line); background: var(--bg) }
+.composer textarea { display: block }
+.err { margin-top: 8px; color: #d33; font-size: 13px }
+.job { margin: 0 0 14px; padding: 12px 16px; border: 1px dashed var(--line); border-radius: 12px }
+.job.bad { border-color: #d33 }
+.jq { font-weight: 600; margin-bottom: 6px }
+.stages { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--mute) }
+.st.run { color: var(--accent) } .st.ok { color: #2a9d5c } .st.fail { color: #d33 }
+.js { font-size: 13px; color: var(--mute) }
+
+/* ---- 사이드바 폴더 조작 ---- */
+.item.over, .list.over { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.item .cnt { float: right; color: var(--mute); font-weight: 400; font-size: 12px; }
+.rename { width: calc(100% - 8px); font: inherit; padding: 0 4px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); color: var(--fg); outline: none; }
+
+.item.picked { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+.pickbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--side); font-size: 12px; }
+.pickbar span { flex: 1; color: var(--mute); }
+.pickbar button { padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); cursor: pointer; }
+.pickbar .danger { background: #d33; border-color: #d33; color: #fff; }
+
+.bicon { width: 18px; height: 18px; flex: none; }
+.new { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.ibtn { display: flex; align-items: center; justify-content: center; padding: 0; }
+.chk { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 1.5px solid var(--mute); border-radius: 4px; box-sizing: border-box; }
+.chk.on { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.5l2.6 2.6L11 4.8' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat; border-color: var(--accent); }
+.pickbar .danger:disabled { opacity: .4; cursor: default; }
